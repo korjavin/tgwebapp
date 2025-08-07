@@ -21,6 +21,34 @@ document.addEventListener('DOMContentLoaded', function () {
 
             classesData.forEach(cls => {
                 const listItem = document.createElement('li');
+
+                // RSVP Counts and Details
+                const yesRsvps = cls.rsvps.filter(r => r.status === 'yes');
+                const tentativeRsvps = cls.rsvps.filter(r => r.status === 'tentative');
+                const noRsvps = cls.rsvps.filter(r => r.status === 'no');
+
+                let rsvpSummary = `<p>RSVPs: ${yesRsvps.length} Yes, ${tentativeRsvps.length} Tentative</p>`;
+
+                let creatorRsvpDetails = '';
+                if (currentUser && currentUser.id === cls.creator.telegram_id) {
+                    const renderRsvpList = (rsvps) => {
+                        if (rsvps.length === 0) return '<li>None</li>';
+                        return rsvps.map(r => `<li>${r.user.first_name} (@${r.user.username || '...'})</li>`).join('');
+                    };
+
+                    creatorRsvpDetails = `
+                        <div class="rsvp-details">
+                            <h4>RSVP Details:</h4>
+                            <strong>Yes (${yesRsvps.length}):</strong>
+                            <ul>${renderRsvpList(yesRsvps)}</ul>
+                            <strong>No (${noRsvps.length}):</strong>
+                            <ul>${renderRsvpList(noRsvps)}</ul>
+                            <strong>Tentative (${tentativeRsvps.length}):</strong>
+                            <ul>${renderRsvpList(tentativeRsvps)}</ul>
+                        </div>
+                    `;
+                }
+
                 let ownerControls = '';
                 if (currentUser && currentUser.id === cls.creator.telegram_id) {
                     ownerControls = `
@@ -36,12 +64,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     <p>${cls.description}</p>
                     <p><strong>Time:</strong> ${new Date(cls.class_time).toLocaleString()}</p>
                     <p><strong>Creator:</strong> ${cls.creator.first_name}</p>
+                    ${rsvpSummary}
                     <div class="rsvp-buttons">
                         <button class="rsvp-button" data-class-id="${cls.id}" data-status="yes">Yes</button>
                         <button class="rsvp-button" data-class-id="${cls.id}" data-status="no">No</button>
                         <button class="rsvp-button" data-class-id="${cls.id}" data-status="tentative">Tentative</button>
                     </div>
                     ${ownerControls}
+                    ${creatorRsvpDetails}
                 `;
                 classesList.appendChild(listItem);
             });
