@@ -25,3 +25,36 @@ def create_class(db: Session, class_data: schemas.ClassCreate, creator_id: int):
     db.commit()
     db.refresh(db_class)
     return db_class
+
+def delete_class(db: Session, class_id: int):
+    db_class = db.query(models.Class).filter(models.Class.id == class_id).first()
+    if not db_class:
+        return None
+    db.delete(db_class)
+    db.commit()
+    return db_class
+
+# RSVP CRUD
+def create_or_update_rsvp(db: Session, class_id: int, user_id: int, status: str):
+    db_rsvp = db.query(models.RSVP).filter(models.RSVP.class_id == class_id, models.RSVP.user_id == user_id).first()
+    if db_rsvp:
+        db_rsvp.status = status
+    else:
+        db_rsvp = models.RSVP(class_id=class_id, user_id=user_id, status=status)
+        db.add(db_rsvp)
+    db.commit()
+    db.refresh(db_rsvp)
+    return db_rsvp
+
+def update_class(db: Session, class_id: int, update_data: schemas.ClassUpdate):
+    db_class = db.query(models.Class).filter(models.Class.id == class_id).first()
+    if not db_class:
+        return None
+
+    update_data_dict = update_data.model_dump(exclude_unset=True)
+    for key, value in update_data_dict.items():
+        setattr(db_class, key, value)
+
+    db.commit()
+    db.refresh(db_class)
+    return db_class
