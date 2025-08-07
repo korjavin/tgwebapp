@@ -14,6 +14,19 @@ We provide a `docker-compose.yml` file that includes the application and a Caddy
 - A server with Docker and Docker Compose installed.
 - A domain name pointing to your server's IP address (e.g., `pet.kfamcloud.com`).
 
+**A Note on Running as a Non-Privileged User:**
+
+By default, binding to ports below 1024 (like 80 and 443) requires root privileges. If you are running Docker as a non-root user (which is a good security practice), you may get a "permission denied" error when trying to run `docker-compose up`.
+
+To solve this, you can grant the Docker binaries the capability to bind to privileged ports without needing to be run as root. This is a secure and standard way to handle this issue.
+
+Run the following commands on your server:
+```bash
+sudo setcap cap_net_bind_service=+ep $(which dockerd)
+sudo setcap cap_net_bind_service=+ep $(which docker-proxy)
+```
+After running these commands, you should be able to start the services with `docker-compose up` as a non-privileged user.
+
 **Steps:**
 1.  **Clone the repository:**
     ```bash
@@ -50,6 +63,45 @@ If you prefer to run the application without Docker Compose, you can build and r
     docker run -d -p 8000:8000 --name class-coordinator-app class-coordinator-app
     ```
     This will run the application on port 8000. You will need to configure your reverse proxy to forward requests to this port.
+
+### Running with Podman
+
+If you are using Podman instead of Docker, the setup is very similar.
+
+**Prerequisites:**
+- Podman and `podman-compose` installed on your server.
+- A domain name pointing to your server's IP address.
+
+**Steps:**
+1.  **Install `podman-compose`:**
+    If you don't have it already, install `podman-compose`. It's often available in your distribution's package manager. For example:
+    ```bash
+    sudo apt-get install podman-compose
+    # or
+    sudo dnf install podman-compose
+    ```
+
+2.  **Allow Binding to Privileged Ports:**
+    By default, rootless Podman containers cannot bind to ports below 1024. To allow this for the Caddy container, you need to adjust a system setting.
+    Run the following command on your server:
+    ```bash
+    sudo sysctl net.ipv4.ip_unprivileged_port_start=0
+    ```
+    To make this change permanent across reboots, create a new file `/etc/sysctl.d/99-podman-privileged-ports.conf` and add the following line to it:
+    ```
+    net.ipv4.ip_unprivileged_port_start=0
+    ```
+
+3.  **Run the application:**
+    You can use the same `docker-compose.yml` file with `podman-compose`:
+    ```bash
+    podman-compose up -d
+    ```
+
+4.  **Check the logs:**
+    ```bash
+    podman-compose logs -f
+    ```
 
 ## How to Register the App with Telegram
 
