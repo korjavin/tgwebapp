@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: class-coordinator-app
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: 8000
+    domains:
+      - name: t1.kfamcloud.com

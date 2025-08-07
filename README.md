@@ -26,7 +26,7 @@ This will pull the `ghcr.io/korjavin/tgwebapp:latest` image and run it.
 
 **Prerequisites:**
 - A server with Docker and Docker Compose installed.
-- A domain name pointing to your server's IP address (e.g., `pet.kfamcloud.com`).
+- A domain name pointing to your server's IP address (e.g., `t1.kfamcloud.com`).
 
 **A Note on Running as a Non-Privileged User:**
 
@@ -82,6 +82,17 @@ If you prefer to run the application without Docker Compose, you can build and r
 
 If you are using Podman instead of Docker, the setup is very similar.
 
+## Deploying to Render
+
+This repository is configured for automatic deployment to [Render](https://render.com/) via a `render.yaml` file.
+
+When you create a new "Blueprint" service on Render and connect it to this repository, Render will automatically:
+1.  Build the `Dockerfile`.
+2.  Deploy the application.
+3.  Attach the `t1.kfamcloud.com` domain and provide a free SSL certificate.
+
+You will need to add your custom domain `t1.kfamcloud.com` to your Render project settings and configure your DNS records as per Render's instructions.
+
 **Prerequisites:**
 - Podman and `podman-compose` installed on your server.
 - A domain name pointing to your server's IP address.
@@ -132,7 +143,7 @@ To use this application as a Telegram Mini App, you need to register it with Tel
     - Send the `/mybots` command and choose your bot.
     - Go to **Bot Settings** > **Menu Button**.
     - Choose **Configure Menu Button**.
-    - Send the URL of your application, including `https://`. For example: `https://pet.kfamcloud.com`
+    - Send the URL of your application, including `https://`. For example: `https://t1.kfamcloud.com`
     - `@BotFather` will then ask you to provide a name for the menu button, for example "Open App".
 
 4.  **Done!**
