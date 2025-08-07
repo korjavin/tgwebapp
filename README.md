@@ -10,6 +10,20 @@ This application is designed to be run with Docker and Docker Compose. For produ
 
 This setup is ideal for development. We provide a `docker-compose.yml` file that includes the application and a Caddy server. Caddy will automatically obtain and renew SSL certificates from Let's Encrypt for your domain.
 
+### Production Deployment
+
+For production, it is recommended to use the `docker-compose.prod.yml` file. This file uses the pre-built Docker image from the GitHub Container Registry, so you don't need the source code on your server.
+
+**Run the application:**
+```bash
+docker-compose -f docker-compose.prod.yml up -d
+```
+Or with Podman:
+```bash
+podman-compose -f docker-compose.prod.yml up -d
+```
+This will pull the `ghcr.io/korjavin/tgwebapp:latest` image and run it.
+
 **Prerequisites:**
 - A server with Docker and Docker Compose installed.
 - A domain name pointing to your server's IP address (e.g., `pet.kfamcloud.com`).
