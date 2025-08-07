@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  app:
+    # IMPORTANT: Replace this with the actual path to your image in the GitHub Container Registry.
+    image: ghcr.io/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME:latest
+    restart: always
+    expose:
+      - "8000"
+    volumes:
+      - ./sql_app.db:/code/sql_app.db
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - CADDY_DOMAIN=${CADDY_DOMAIN}
+
+volumes:
+  caddy_data:
+  caddy_config:

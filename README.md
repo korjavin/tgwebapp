@@ -8,7 +8,7 @@ This application is designed to be run with Docker and Docker Compose. For produ
 
 ### Recommended Setup with Caddy (for automatic HTTPS)
 
-We provide a `docker-compose.yml` file that includes the application and a Caddy server. Caddy will automatically obtain and renew SSL certificates from Let's Encrypt for your domain.
+This setup is ideal for development. We provide a `docker-compose.yml` file that includes the application and a Caddy server. Caddy will automatically obtain and renew SSL certificates from Let's Encrypt for your domain.
 
 **Prerequisites:**
 - A server with Docker and Docker Compose installed.
