@@ -19,8 +19,16 @@ def create_user(db: Session, user: schemas.UserCreate):
 def get_classes(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Class).options(
         joinedload(models.Class.creator),
-        joinedload(models.Class.rsvps).joinedload(models.RSVP.user)
+        joinedload(models.Class.rsvps).joinedload(models.RSVP.user),
+        joinedload(models.Class.questions).joinedload(models.Question.user)
     ).offset(skip).limit(limit).all()
+
+def get_class(db: Session, class_id: int):
+    return db.query(models.Class).options(
+        joinedload(models.Class.creator),
+        joinedload(models.Class.rsvps).joinedload(models.RSVP.user),
+        joinedload(models.Class.questions).joinedload(models.Question.user)
+    ).filter(models.Class.id == class_id).first()
 
 def create_class(db: Session, class_data: schemas.ClassCreate, creator_id: int):
     db_class = models.Class(**class_data.model_dump(), creator_id=creator_id)
@@ -28,6 +36,14 @@ def create_class(db: Session, class_data: schemas.ClassCreate, creator_id: int):
     db.commit()
     db.refresh(db_class)
     return db_class
+
+# Question CRUD
+def create_question_for_class(db: Session, class_id: int, user_id: int, text: str):
+    db_question = models.Question(class_id=class_id, user_id=user_id, text=text)
+    db.add(db_question)
+    db.commit()
+    db.refresh(db_question)
+    return db_question
 
 def delete_class(db: Session, class_id: int):
     db_class = db.query(models.Class).filter(models.Class.id == class_id).first()

@@ -25,6 +25,13 @@ class QuestionBase(BaseModel):
 class QuestionCreate(QuestionBase):
     pass
 
+class QuestionCreateRequest(BaseModel):
+    text: str
+    author_telegram_id: int
+    author_first_name: str
+    author_last_name: Optional[str] = None
+    author_username: Optional[str] = None
+
 class Question(QuestionBase):
     id: int
     user_id: int

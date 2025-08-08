@@ -1,4 +1,77 @@
+async function renderDetailsView(classId) {
+    try {
+        const response = await fetch(`/api/classes/${classId}`);
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        const cls = await response.json();
+
+        const detailsView = document.getElementById('details-view');
+
+        // Render questions
+        let questionsHtml = '<h5>Questions</h5><ul class="collection">';
+        if (cls.questions.length > 0) {
+            questionsHtml += cls.questions.map(q => `
+                <li class="collection-item">
+                    ${q.text}
+                    <span class="secondary-content">by ${q.user.first_name}</span>
+                </li>
+            `).join('');
+        } else {
+            questionsHtml += '<li class="collection-item">No questions yet.</li>';
+        }
+        questionsHtml += '</ul>';
+
+        // Render "add question" form
+        const addQuestionFormHtml = `
+            <h5>Ask a Question</h5>
+            <form id="add-question-form" data-class-id="${classId}">
+                <div class="input-field">
+                    <textarea id="question-text" class="materialize-textarea"></textarea>
+                    <label for="question-text">Your Question</label>
+                </div>
+                <button type="submit" class="btn">Submit Question</button>
+            </form>
+        `;
+
+        detailsView.innerHTML = `
+            <a href="#" class="btn-flat waves-effect">&lt; Back to list</a>
+            <h2>${cls.topic}</h2>
+            <p>${cls.description}</p>
+            <p><b>Time:</b> ${new Date(cls.class_time).toLocaleString()}</p>
+            <p><b>Creator:</b> ${cls.creator.first_name}</p>
+            <hr>
+            ${questionsHtml}
+            ${addQuestionFormHtml}
+        `;
+
+    } catch (error) {
+        console.error('Failed to fetch class details:', error);
+        document.getElementById('details-view').innerHTML = '<h2>Failed to load class details.</h2>';
+    }
+}
+
+function router() {
+    const hash = window.location.hash;
+    const listView = document.getElementById('list-view');
+    const detailsView = document.getElementById('details-view');
+
+    // Hide all views first
+    listView.style.display = 'none';
+    detailsView.style.display = 'none';
+
+    if (hash.startsWith('#/class/')) {
+        const classId = hash.split('/')[2];
+        detailsView.style.display = 'block';
+        renderDetailsView(classId);
+    } else {
+        listView.style.display = 'block';
+        fetchClasses(); // This renders the list view
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
+    const detailsView = document.getElementById('details-view');
     const createClassForm = document.getElementById('create-class-form');
     const classesList = document.getElementById('classes-list');
     const editModal = document.getElementById('edit-modal');
@@ -20,8 +93,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const currentUser = tg.initDataUnsafe.user;
 
             classesData.forEach(cls => {
-                const listItem = document.createElement('div'); // Changed from li
+                const listItem = document.createElement('a');
                 listItem.className = 'collection-item';
+                listItem.href = `#/class/${cls.id}`;
 
                 // RSVP Counts and Details
                 const yesRsvps = cls.rsvps.filter(r => r.status === 'yes');
@@ -133,8 +207,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Initial fetch of classes when the page loads
-    fetchClasses();
+    // Initial fetch of classes when the page loads is now handled by the router
 
     // Event listener for RSVP buttons (using event delegation)
     classesList.addEventListener('click', async function (event) {
@@ -273,4 +346,55 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // Set up the router
+    window.addEventListener('hashchange', router);
+    router(); // Call on initial load
+
+    // Event listener for the add question form
+    detailsView.addEventListener('submit', async function (event) {
+        if (event.target.id === 'add-question-form') {
+            event.preventDefault();
+
+            const classId = event.target.dataset.classId;
+            const questionText = document.getElementById('question-text').value;
+
+            const tg = window.Telegram.WebApp;
+            const userData = tg.initDataUnsafe.user;
+
+            if (!userData) {
+                alert('Could not retrieve user data from Telegram.');
+                return;
+            }
+
+            const requestBody = {
+                text: questionText,
+                author_telegram_id: userData.id,
+                author_first_name: userData.first_name,
+                author_last_name: userData.last_name,
+                author_username: userData.username,
+            };
+
+            try {
+                const response = await fetch(`/api/classes/${classId}/questions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to add question');
+                }
+
+                // Re-render the details view to show the new question
+                renderDetailsView(classId);
+
+            } catch (error) {
+                console.error('Error adding question:', error);
+                alert(`Error: ${error.message}`);
+            }
+        }
+    });
 });
