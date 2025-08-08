@@ -1,6 +1,6 @@
 async function renderDetailsView(classId) {
     try {
-        const response = await fetch(`/api/classes/${classId}`);
+        const response = await fetch(`/api/classes/${classId}`, { cache: 'no-cache' });
         if (!response.ok) {
             throw new Error('Network response was not ok');
         }
@@ -34,12 +34,25 @@ async function renderDetailsView(classId) {
             </form>
         `;
 
+        const tg = window.Telegram.WebApp;
+        const currentUser = tg.initDataUnsafe.user;
+        let ownerControls = '';
+        if (currentUser && currentUser.id === cls.creator.telegram_id) {
+            ownerControls = `
+                <div class="owner-controls" style="margin-top: 10px;">
+                    <a class="waves-effect waves-light btn-small edit-button" data-class-id="${cls.id}"><i class="material-icons left">edit</i>Edit</a>
+                    <a class="waves-effect waves-light btn-small red cancel-button" data-class-id="${cls.id}"><i class="material-icons left">delete</i>Cancel</a>
+                </div>
+            `;
+        }
+
         detailsView.innerHTML = `
             <a href="#" class="btn-flat waves-effect">&lt; Back to list</a>
             <h2>${cls.topic}</h2>
             <p>${cls.description}</p>
             <p><b>Time:</b> ${new Date(cls.class_time).toLocaleString()}</p>
             <p><b>Creator:</b> ${cls.creator.first_name}</p>
+            ${ownerControls}
             <hr>
             ${questionsHtml}
             ${addQuestionFormHtml}
@@ -78,6 +91,23 @@ document.addEventListener('DOMContentLoaded', function () {
     const editClassForm = document.getElementById('edit-class-form');
     const saveEditButton = document.getElementById('save-edit-button');
     let classesData = []; // To store the fetched classes globally within the scope
+
+    function openEditModal(classId) {
+        const classToEdit = classesData.find(cls => cls.id === classId);
+
+        if (classToEdit) {
+            document.getElementById('edit-class-id').value = classToEdit.id;
+            document.getElementById('edit-topic').value = classToEdit.topic;
+            document.getElementById('edit-description').value = classToEdit.description;
+            // The datetime-local input needs a specific format: YYYY-MM-DDTHH:mm
+            const d = new Date(classToEdit.class_time);
+            const formattedDate = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2) + 'T' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+            document.getElementById('edit-class-time').value = formattedDate;
+
+            const modalInstance = M.Modal.getInstance(editModal);
+            modalInstance.open();
+        }
+    }
 
     // Function to fetch and display classes
     async function fetchClasses() {
@@ -282,20 +312,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         } else if (event.target.classList.contains('edit-button')) {
             const classId = parseInt(event.target.dataset.classId, 10);
-            const classToEdit = classesData.find(cls => cls.id === classId);
-
-            if (classToEdit) {
-                document.getElementById('edit-class-id').value = classToEdit.id;
-                document.getElementById('edit-topic').value = classToEdit.topic;
-                document.getElementById('edit-description').value = classToEdit.description;
-                // The datetime-local input needs a specific format: YYYY-MM-DDTHH:mm
-                const d = new Date(classToEdit.class_time);
-                const formattedDate = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2) + 'T' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
-                document.getElementById('edit-class-time').value = formattedDate;
-
-                const modalInstance = M.Modal.getInstance(editModal);
-                modalInstance.open();
-            }
+            openEditModal(classId);
         }
     });
 
@@ -351,6 +368,42 @@ document.addEventListener('DOMContentLoaded', function () {
     router(); // Call on initial load
 
     // Event listener for the add question form
+    detailsView.addEventListener('click', async function (event) {
+        if (event.target.classList.contains('cancel-button')) {
+            const classId = event.target.dataset.classId;
+            const tg = window.Telegram.WebApp;
+            const userData = tg.initDataUnsafe.user;
+
+            if (!userData) {
+                alert('Could not retrieve user data from Telegram.');
+                return;
+            }
+
+            if (confirm('Are you sure you want to cancel this class?')) {
+                try {
+                    const response = await fetch(`/api/classes/${classId}?deleter_telegram_id=${userData.id}`, {
+                        method: 'DELETE',
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || 'Failed to cancel class');
+                    }
+
+                    alert('Class cancelled successfully.');
+                    window.location.hash = ''; // Redirect to home
+
+                } catch (error) {
+                    console.error('Error cancelling class:', error);
+                    alert(`Error: ${error.message}`);
+                }
+            }
+        } else if (event.target.classList.contains('edit-button')) {
+            const classId = parseInt(event.target.dataset.classId, 10);
+            openEditModal(classId);
+        }
+    });
+
     detailsView.addEventListener('submit', async function (event) {
         if (event.target.id === 'add-question-form') {
             event.preventDefault();

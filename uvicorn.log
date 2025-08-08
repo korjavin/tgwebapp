@@ -1,12 +1,13 @@
-INFO:     Started server process [23226]
+INFO:     Started server process [24675]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     127.0.0.1:35830 - "POST /api/classes/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35832 - "GET /api/classes/1 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35846 - "POST /api/classes/1/questions HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35858 - "GET /api/classes/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50040 - "POST /api/classes/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50052 - "POST /api/classes/1/questions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50060 - "GET /api/classes/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50070 - "POST /api/classes/1/rsvp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50072 - "GET /api/classes/ HTTP/1.1" 200 OK
 INFO:     Shutting down
 INFO:     Waiting for application shutdown.
 INFO:     Application shutdown complete.
-INFO:     Finished server process [23226]
+INFO:     Finished server process [24675]
