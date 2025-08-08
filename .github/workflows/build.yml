@@ -26,5 +26,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./Dockerfile.go
           push: true
-          tags: ghcr.io/${{ github.repository }}:latest
+          tags: ghcr.io/korjavin/tgwebapp-go:latest

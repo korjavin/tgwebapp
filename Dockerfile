@@ -1,21 +1,23 @@
-# Use an official Python runtime as a parent image
-FROM python:3.11-slim
+# Build stage
+FROM cgr.dev/chainguard/go AS builder
 
-# Set the working directory in the container
-WORKDIR /code
+WORKDIR /app
 
-# Copy the requirements file into the container at /code
-COPY ./requirements.txt /code/requirements.txt
+COPY go.mod go.sum ./
+RUN go mod download
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+COPY . .
 
-# Copy the rest of the application's code into the container at /code
-COPY ./app /code/app
-COPY ./static /code/static
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/main ./cmd/server
 
-# Expose the port the app runs on
+# Final stage
+FROM cgr.dev/chainguard/static
+
+WORKDIR /app
+
+COPY --from=builder /app/main .
+COPY --from=builder /app/static ./static
+
 EXPOSE 8000
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/main"]
