@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from . import models, schemas
 
 # User CRUD
@@ -17,7 +17,10 @@ def create_user(db: Session, user: schemas.UserCreate):
 
 # Class CRUD
 def get_classes(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Class).offset(skip).limit(limit).all()
+    return db.query(models.Class).options(
+        joinedload(models.Class.creator),
+        joinedload(models.Class.rsvps).joinedload(models.RSVP.user)
+    ).offset(skip).limit(limit).all()
 
 def create_class(db: Session, class_data: schemas.ClassCreate, creator_id: int):
     db_class = models.Class(**class_data.model_dump(), creator_id=creator_id)

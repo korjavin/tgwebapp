@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const classesList = document.getElementById('classes-list');
     const editModal = document.getElementById('edit-modal');
     const editClassForm = document.getElementById('edit-class-form');
-    const closeButton = document.querySelector('.close-button');
+    const saveEditButton = document.getElementById('save-edit-button');
     let classesData = []; // To store the fetched classes globally within the scope
 
     // Function to fetch and display classes
@@ -20,7 +20,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const currentUser = tg.initDataUnsafe.user;
 
             classesData.forEach(cls => {
-                const listItem = document.createElement('li');
+                const listItem = document.createElement('div'); // Changed from li
+                listItem.className = 'collection-item';
 
                 // RSVP Counts and Details
                 const yesRsvps = cls.rsvps.filter(r => r.status === 'yes');
@@ -52,23 +53,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 let ownerControls = '';
                 if (currentUser && currentUser.id === cls.creator.telegram_id) {
                     ownerControls = `
-                        <div class="owner-controls">
-                            <button class="edit-button" data-class-id="${cls.id}">Edit</button>
-                            <button class="cancel-button" data-class-id="${cls.id}">Cancel</button>
+                        <div class="owner-controls" style="margin-top: 10px;">
+                            <a class="waves-effect waves-light btn-small edit-button" data-class-id="${cls.id}"><i class="material-icons left">edit</i>Edit</a>
+                            <a class="waves-effect waves-light btn-small red cancel-button" data-class-id="${cls.id}"><i class="material-icons left">delete</i>Cancel</a>
                         </div>
                     `;
                 }
 
                 listItem.innerHTML = `
-                    <h3>${cls.topic}</h3>
+                    <span class="title"><b>${cls.topic}</b></span>
                     <p>${cls.description}</p>
-                    <p><strong>Time:</strong> ${new Date(cls.class_time).toLocaleString()}</p>
-                    <p><strong>Creator:</strong> ${cls.creator.first_name}</p>
+                    <p><b>Time:</b> ${new Date(cls.class_time).toLocaleString()}</p>
+                    <p><b>Creator:</b> ${cls.creator.first_name}</p>
                     ${rsvpSummary}
-                    <div class="rsvp-buttons">
-                        <button class="rsvp-button" data-class-id="${cls.id}" data-status="yes">Yes</button>
-                        <button class="rsvp-button" data-class-id="${cls.id}" data-status="no">No</button>
-                        <button class="rsvp-button" data-class-id="${cls.id}" data-status="tentative">Tentative</button>
+                    <div class="rsvp-buttons" style="margin-top: 10px;">
+                        <a class="waves-effect waves-light btn-small rsvp-button" data-class-id="${cls.id}" data-status="yes">Yes</a>
+                        <a class="waves-effect waves-light btn-small rsvp-button" data-class-id="${cls.id}" data-status="no">No</a>
+                        <a class="waves-effect waves-light btn-small rsvp-button" data-class-id="${cls.id}" data-status="tentative">Tentative</a>
                     </div>
                     ${ownerControls}
                     ${creatorRsvpDetails}
@@ -171,8 +172,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
                 alert(`You have successfully RSVPed "${status}"`);
-                // In a real app, you might want to update the UI to show the current RSVP status.
-                // For now, an alert is sufficient.
+                fetchClasses(); // Refresh the list
 
             } catch (error) {
                 console.error('Error RSVPing:', error);
@@ -220,15 +220,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 const formattedDate = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2) + 'T' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
                 document.getElementById('edit-class-time').value = formattedDate;
 
-                document.getElementById('edit-modal').style.display = 'block';
+                const modalInstance = M.Modal.getInstance(editModal);
+                modalInstance.open();
             }
         }
     });
 
-    // Event listener for the edit form submission
-    editClassForm.addEventListener('submit', async function (event) {
-        event.preventDefault();
-
+    // Event listener for the save edit button
+    saveEditButton.addEventListener('click', async function (event) {
         const classId = document.getElementById('edit-class-id').value;
         const topic = document.getElementById('edit-topic').value;
         const description = document.getElementById('edit-description').value;
@@ -274,14 +273,4 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Listeners to close the modal
-    closeButton.addEventListener('click', function () {
-        editModal.style.display = 'none';
-    });
-
-    window.addEventListener('click', function (event) {
-        if (event.target == editModal) {
-            editModal.style.display = 'none';
-        }
-    });
 });
