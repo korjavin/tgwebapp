@@ -59,6 +59,16 @@ def read_classes(skip: int = 0, limit: int = 100, db: Session = Depends(get_db))
     classes = crud.get_classes(db, skip=skip, limit=limit)
     return classes
 
+@app.get("/api/classes/{class_id}", response_model=schemas.Class)
+def read_class(class_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single class by its ID.
+    """
+    db_class = crud.get_class(db, class_id=class_id)
+    if db_class is None:
+        raise HTTPException(status_code=404, detail="Class not found")
+    return db_class
+
 @app.post("/api/classes/{class_id}/rsvp", response_model=schemas.RSVP)
 def rsvp_to_class(class_id: int, rsvp_req: schemas.RsvpRequest, db: Session = Depends(get_db)):
     """
@@ -121,3 +131,20 @@ def delete_class_endpoint(class_id: int, deleter_telegram_id: int, db: Session =
     if deleted_class is None:
         raise HTTPException(status_code=404, detail="Class not found during delete")
     return {"status": "deleted", "class_id": class_id}
+
+@app.post("/api/classes/{class_id}/questions", response_model=schemas.Question)
+def create_question_for_class_endpoint(class_id: int, question_req: schemas.QuestionCreateRequest, db: Session = Depends(get_db)):
+    """
+    Add a question to a class.
+    """
+    user = crud.get_user_by_telegram_id(db, telegram_id=question_req.author_telegram_id)
+    if not user:
+        user_in = schemas.UserCreate(
+            telegram_id=question_req.author_telegram_id,
+            first_name=question_req.author_first_name,
+            last_name=question_req.author_last_name,
+            username=question_req.author_username,
+        )
+        user = crud.create_user(db=db, user=user_in)
+
+    return crud.create_question_for_class(db=db, class_id=class_id, user_id=user.id, text=question_req.text)
