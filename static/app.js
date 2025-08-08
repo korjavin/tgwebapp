@@ -1,6 +1,10 @@
 document.addEventListener('DOMContentLoaded', function () {
     const createClassForm = document.getElementById('create-class-form');
     const classesList = document.getElementById('classes-list');
+    const editModal = document.getElementById('edit-modal');
+    const editClassForm = document.getElementById('edit-class-form');
+    const closeButton = document.querySelector('.close-button');
+    let classesData = []; // To store the fetched classes globally within the scope
 
     // Function to fetch and display classes
     async function fetchClasses() {
@@ -9,16 +13,65 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
-            const classes = await response.json();
+            classesData = await response.json();
 
             classesList.innerHTML = ''; // Clear the list first
-            classes.forEach(cls => {
+            const tg = window.Telegram.WebApp;
+            const currentUser = tg.initDataUnsafe.user;
+
+            classesData.forEach(cls => {
                 const listItem = document.createElement('li');
+
+                // RSVP Counts and Details
+                const yesRsvps = cls.rsvps.filter(r => r.status === 'yes');
+                const tentativeRsvps = cls.rsvps.filter(r => r.status === 'tentative');
+                const noRsvps = cls.rsvps.filter(r => r.status === 'no');
+
+                let rsvpSummary = `<p>RSVPs: ${yesRsvps.length} Yes, ${tentativeRsvps.length} Tentative</p>`;
+
+                let creatorRsvpDetails = '';
+                if (currentUser && currentUser.id === cls.creator.telegram_id) {
+                    const renderRsvpList = (rsvps) => {
+                        if (rsvps.length === 0) return '<li>None</li>';
+                        return rsvps.map(r => `<li>${r.user.first_name} (@${r.user.username || '...'})</li>`).join('');
+                    };
+
+                    creatorRsvpDetails = `
+                        <div class="rsvp-details">
+                            <h4>RSVP Details:</h4>
+                            <strong>Yes (${yesRsvps.length}):</strong>
+                            <ul>${renderRsvpList(yesRsvps)}</ul>
+                            <strong>No (${noRsvps.length}):</strong>
+                            <ul>${renderRsvpList(noRsvps)}</ul>
+                            <strong>Tentative (${tentativeRsvps.length}):</strong>
+                            <ul>${renderRsvpList(tentativeRsvps)}</ul>
+                        </div>
+                    `;
+                }
+
+                let ownerControls = '';
+                if (currentUser && currentUser.id === cls.creator.telegram_id) {
+                    ownerControls = `
+                        <div class="owner-controls">
+                            <button class="edit-button" data-class-id="${cls.id}">Edit</button>
+                            <button class="cancel-button" data-class-id="${cls.id}">Cancel</button>
+                        </div>
+                    `;
+                }
+
                 listItem.innerHTML = `
                     <h3>${cls.topic}</h3>
                     <p>${cls.description}</p>
                     <p><strong>Time:</strong> ${new Date(cls.class_time).toLocaleString()}</p>
                     <p><strong>Creator:</strong> ${cls.creator.first_name}</p>
+                    ${rsvpSummary}
+                    <div class="rsvp-buttons">
+                        <button class="rsvp-button" data-class-id="${cls.id}" data-status="yes">Yes</button>
+                        <button class="rsvp-button" data-class-id="${cls.id}" data-status="no">No</button>
+                        <button class="rsvp-button" data-class-id="${cls.id}" data-status="tentative">Tentative</button>
+                    </div>
+                    ${ownerControls}
+                    ${creatorRsvpDetails}
                 `;
                 classesList.appendChild(listItem);
             });
@@ -81,4 +134,154 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Initial fetch of classes when the page loads
     fetchClasses();
+
+    // Event listener for RSVP buttons (using event delegation)
+    classesList.addEventListener('click', async function (event) {
+        if (event.target.classList.contains('rsvp-button')) {
+            const classId = event.target.dataset.classId;
+            const status = event.target.dataset.status;
+            const tg = window.Telegram.WebApp;
+            const userData = tg.initDataUnsafe.user;
+
+            if (!userData) {
+                alert('Could not retrieve user data from Telegram.');
+                return;
+            }
+
+            const requestBody = {
+                telegram_id: userData.id,
+                status: status,
+                first_name: userData.first_name,
+                last_name: userData.last_name,
+                username: userData.username,
+            };
+
+            try {
+                const response = await fetch(`/api/classes/${classId}/rsvp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to RSVP');
+                }
+
+                alert(`You have successfully RSVPed "${status}"`);
+                // In a real app, you might want to update the UI to show the current RSVP status.
+                // For now, an alert is sufficient.
+
+            } catch (error) {
+                console.error('Error RSVPing:', error);
+                alert(`Error: ${error.message}`);
+            }
+        } else if (event.target.classList.contains('cancel-button')) {
+            const classId = event.target.dataset.classId;
+            const tg = window.Telegram.WebApp;
+            const userData = tg.initDataUnsafe.user;
+
+            if (!userData) {
+                alert('Could not retrieve user data from Telegram.');
+                return;
+            }
+
+            if (confirm('Are you sure you want to cancel this class?')) {
+                try {
+                    const response = await fetch(`/api/classes/${classId}?deleter_telegram_id=${userData.id}`, {
+                        method: 'DELETE',
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || 'Failed to cancel class');
+                    }
+
+                    alert('Class cancelled successfully.');
+                    fetchClasses(); // Refresh the list
+
+                } catch (error) {
+                    console.error('Error cancelling class:', error);
+                    alert(`Error: ${error.message}`);
+                }
+            }
+        } else if (event.target.classList.contains('edit-button')) {
+            const classId = parseInt(event.target.dataset.classId, 10);
+            const classToEdit = classesData.find(cls => cls.id === classId);
+
+            if (classToEdit) {
+                document.getElementById('edit-class-id').value = classToEdit.id;
+                document.getElementById('edit-topic').value = classToEdit.topic;
+                document.getElementById('edit-description').value = classToEdit.description;
+                // The datetime-local input needs a specific format: YYYY-MM-DDTHH:mm
+                const d = new Date(classToEdit.class_time);
+                const formattedDate = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2) + 'T' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+                document.getElementById('edit-class-time').value = formattedDate;
+
+                document.getElementById('edit-modal').style.display = 'block';
+            }
+        }
+    });
+
+    // Event listener for the edit form submission
+    editClassForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        const classId = document.getElementById('edit-class-id').value;
+        const topic = document.getElementById('edit-topic').value;
+        const description = document.getElementById('edit-description').value;
+        const classTime = document.getElementById('edit-class-time').value;
+
+        const tg = window.Telegram.WebApp;
+        const userData = tg.initDataUnsafe.user;
+
+        if (!userData) {
+            alert('Could not retrieve user data from Telegram.');
+            return;
+        }
+
+        const requestBody = {
+            updater_telegram_id: userData.id,
+            update_data: {
+                topic: topic,
+                description: description,
+                class_time: classTime,
+            }
+        };
+
+        try {
+            const response = await fetch(`/api/classes/${classId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to update class');
+            }
+
+            editModal.style.display = 'none';
+            fetchClasses(); // Refresh the list
+
+        } catch (error) {
+            console.error('Error updating class:', error);
+            alert(`Error: ${error.message}`);
+        }
+    });
+
+    // Listeners to close the modal
+    closeButton.addEventListener('click', function () {
+        editModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', function (event) {
+        if (event.target == editModal) {
+            editModal.style.display = 'none';
+        }
+    });
 });

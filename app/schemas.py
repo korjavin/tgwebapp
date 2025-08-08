@@ -41,6 +41,13 @@ class RSVPBase(BaseModel):
 class RSVPCreate(RSVPBase):
     pass
 
+class RsvpRequest(BaseModel):
+    telegram_id: int
+    status: str # "yes", "no", "tentative"
+    first_name: str
+    last_name: Optional[str] = None
+    username: Optional[str] = None
+
 class RSVP(RSVPBase):
     id: int
     user_id: int
@@ -64,6 +71,15 @@ class ClassCreateRequest(ClassBase):
     creator_first_name: str
     creator_last_name: Optional[str] = None
     creator_username: Optional[str] = None
+
+class ClassUpdate(BaseModel):
+    topic: Optional[str] = None
+    description: Optional[str] = None
+    class_time: Optional[datetime] = None
+
+class ClassUpdateRequest(BaseModel):
+    updater_telegram_id: int
+    update_data: ClassUpdate
 
 class Class(ClassBase):
     id: int

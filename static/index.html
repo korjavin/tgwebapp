@@ -31,6 +31,45 @@
             margin-bottom: 10px;
             border-radius: 8px;
         }
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+        }
+        .modal-content {
+            background-color: var(--tg-theme-bg-color);
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: var(--tg-theme-text-color);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .rsvp-details {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid var(--tg-theme-hint-color);
+        }
+        .rsvp-details ul {
+            list-style: none;
+            padding-left: 15px;
+        }
     </style>
 </head>
 <body>
@@ -48,6 +87,24 @@
     <ul id="classes-list">
         <!-- Classes will be loaded here by JavaScript -->
     </ul>
+
+    <!-- The Modal for editing a class -->
+    <div id="edit-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Edit Class</h2>
+            <form id="edit-class-form">
+                <input type="hidden" id="edit-class-id">
+                <label for="edit-topic">Topic:</label>
+                <input type="text" id="edit-topic" required>
+                <label for="edit-description">Description:</label>
+                <textarea id="edit-description" required></textarea>
+                <label for="edit-class-time">Time:</label>
+                <input type="datetime-local" id="edit-class-time" required>
+                <button type="submit">Save Changes</button>
+            </form>
+        </div>
+    </div>
 
     <script src="/static/app.js"></script>
     <script>
